@@ -1,8 +1,12 @@
 use macroquad::prelude::*;
+use ::rand::rng;
+use rand_distr::{Distribution, Uniform};
+
 
 const MOVE_DISTANCE: f32 = 2.;
 const BULLET_RADIUS: f32 = 3.;
 const PLAYER_RADIUS: f32 = 10.;
+const MAX_ENNEMIES_NB: u8 = 10;
 
 struct Player {
     pos: Vec2,
@@ -30,6 +34,13 @@ async fn main() {
     let mut ennemies: Vec<Ennemy> = Vec::new();
 
     let mut score: i16 = 0;
+
+    let mut rng = rng();
+    let x_pos_gen = 
+    Uniform::new_inclusive(PLAYER_RADIUS, screen_width() - PLAYER_RADIUS).expect("Failed to create uniform distribution: invalid range");
+    let y_pos_gen = 
+    Uniform::new_inclusive(PLAYER_RADIUS, screen_height() - PLAYER_RADIUS).expect("Failed to create uniform distribution: invalid range");
+
 
     ennemies.push(Ennemy { 
         pos: Vec2::new(screen_width() / 4., screen_height() / 4.),
@@ -88,6 +99,13 @@ async fn main() {
         }
         bullets.retain(|bullet| !bullet.collided);
         ennemies.retain(|ennemy| !ennemy.collided);
+
+        while ennemies.len() < MAX_ENNEMIES_NB.into() {
+            ennemies.push(Ennemy { 
+                pos: Vec2 { x: x_pos_gen.sample(&mut rng), y: y_pos_gen.sample(&mut rng) }, 
+                collided: false
+            });
+        }
 
         draw_player(&player);
         draw_ennemies(&ennemies);
