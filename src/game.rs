@@ -17,7 +17,6 @@ const ENNEMY_SPEED: f32 = 0.1;
 
 pub struct Game {
     player: Player,
-    sword: Sword,
     bullets: Vec<Bullet>,
     ennemies: Vec<Ennemy>,
     score: i16,
@@ -26,17 +25,19 @@ pub struct Game {
 
 impl Game {
     pub(crate) fn new(sword_texture: Texture2D) -> Self {
-        let player = Player {
-            pos: Vec2::new(screen_width() / 2.0, screen_height() / 2.0),
-            hp: 10,
-        };
-        
         let sword = Sword {
             position: vec2(screen_width() / 2.0, screen_height() / 2.0),
             angle: 0.0,
             texture: sword_texture,
             size_ratio: 8.0,
         };
+
+        let player = Player {
+            pos: Vec2::new(screen_width() / 2.0, screen_height() / 2.0),
+            hp: 10,
+            sword: sword
+        };
+        
         
         let bullets: Vec<Bullet> = Vec::new();
         
@@ -53,7 +54,6 @@ impl Game {
         
         Game {
             player,
-            sword,
             bullets,
             ennemies,
             score,
@@ -62,10 +62,8 @@ impl Game {
     }
     
     pub(crate) fn update(&mut self) {
-        let dt = get_frame_time();
-        self.sword.angle += 2.0 * dt;
-
         self.get_input();
+        self.player.udpate();
         self.manage_collisions();
         self.populate_ennemies();
         self.draw();
@@ -85,12 +83,12 @@ impl Game {
             }
         }
         
-        let sword_hitbox = self.sword.hitbox();
+        let weapon_hitbox = self.player.weapon_hitbox();
         
         // Moving ennemies + checking ennemies - player collision
         for ennemy in self.ennemies.iter_mut() {
             ennemy.pos += ennemy.vel * ENNEMY_SPEED;
-            if crate::collision::hitbox_intersects(&sword_hitbox, &ennemy.hitbox()) {
+            if crate::collision::hitbox_intersects(&weapon_hitbox, &ennemy.hitbox()) {
                 self.score += 1;
                 ennemy.collided = true;
             }
@@ -139,10 +137,9 @@ impl Game {
         for ennemy in self.ennemies.iter() {
             draw_circle(ennemy.pos.x, ennemy.pos.y, PLAYER_RADIUS, RED);
         }
-        draw_circle(self.player.pos.x, self.player.pos.y, PLAYER_RADIUS, BLUE);
+        self.player.draw();
         draw_text(&format!("Score : {}", self.score), 10., 15., 20., WHITE);
         draw_text(&format!("HP : {}", self.player.hp), 10., 32., 20., WHITE);
-        self.sword.draw();
     }
     
     fn populate_ennemies(&mut self) {
