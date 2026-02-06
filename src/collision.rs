@@ -42,9 +42,9 @@ fn circle_intersects_circle(a: &Circle, b: &Circle) -> bool {
     let pos_a = Vec2{x: a.x, y: a.y};
     let pos_b = Vec2{x: b.x, y: b.y};
     if (pos_a - pos_b).length() < a.r {
-        return false;
+        return true;
     }
-    true
+    false
 }
 
 fn obb_intersects_obb(a: &OBB, b: &OBB) -> bool {

@@ -1,6 +1,7 @@
 use macroquad::prelude::*;
 use rand_distr::Distribution;
 
+use crate::collision::hitbox_intersects;
 use crate::entity::bullet::Bullet;
 use crate::entity::ennemy::Ennemy;
 use crate::entity::player::Player;
@@ -23,6 +24,11 @@ pub struct Game {
     rng: SurvivorRng,
 }
 
+pub struct GameData {
+    pub(crate) is_game_over: bool,
+    pub(crate) score: i16,
+}
+
 impl Game {
     pub(crate) fn new(sword_texture: Texture2D) -> Self {
         let sword = Sword {
@@ -31,12 +37,14 @@ impl Game {
             texture: sword_texture,
             size_ratio: 8.0,
         };
-
-        let player = Player {
-            pos: Vec2::new(screen_width() / 2.0, screen_height() / 2.0),
-            hp: 10,
-            sword: sword
-        };
+        
+        let player = Player::new(
+            Vec2::new(
+                screen_width() / 2.0, 
+                screen_height() / 2.0
+            ), 
+            sword
+        );
         
         
         let bullets: Vec<Bullet> = Vec::new();
@@ -44,7 +52,7 @@ impl Game {
         let ennemies: Vec<Ennemy> = Vec::new();
         
         let score: i16 = 0;
-
+        
         let rng = SurvivorRng::new(
             PLAYER_RADIUS, 
             screen_width() - PLAYER_RADIUS, 
@@ -61,14 +69,19 @@ impl Game {
         }
     }
     
-    pub(crate) fn update(&mut self) {
+    pub(crate) fn update(&mut self) -> GameData {
         self.get_input();
         self.player.udpate();
         self.manage_collisions();
         self.populate_ennemies();
         self.draw();
+        
+        GameData {
+            is_game_over: self.player.hp <= 0,
+            score: self.score,
+        }
     }
-
+    
     fn manage_collisions(&mut self) {
         // Moving bullets + checking bullet - ennemies collisions
         for bullet in self.bullets.iter_mut() {
@@ -86,38 +99,45 @@ impl Game {
         let weapon_hitbox = self.player.weapon_hitbox();
         
         // Moving ennemies + checking ennemies - player collision
+        // TODO : Player collision
         for ennemy in self.ennemies.iter_mut() {
             ennemy.pos += ennemy.vel * ENNEMY_SPEED;
-            if crate::collision::hitbox_intersects(&weapon_hitbox, &ennemy.hitbox()) {
+            if hitbox_intersects(&ennemy.hitbox(), &self.player.hitbox()) {
+                self.player.hp -= 1;
+                ennemy.collided = true;
+            }
+            if hitbox_intersects(&weapon_hitbox, &ennemy.hitbox()) {
                 self.score += 1;
                 ennemy.collided = true;
             }
         }
-
+        
         self.bullets.retain(|bullet| !bullet.collided);
         self.ennemies.retain(|ennemy| !ennemy.collided);
     }
-
+    
     fn get_input(&mut self) {
+        let mut player_movement = Vec2::ZERO;
+        
         if is_key_down(KeyCode::Down) {
-            self.player.pos.y += MOVE_DISTANCE;
-            Self::adjust_ennemies_velocity(&mut self.ennemies, &self.player);
+            player_movement.y = MOVE_DISTANCE;
         }
         
         if is_key_down(KeyCode::Up) {
-            self.player.pos.y -= MOVE_DISTANCE;
-            Self::adjust_ennemies_velocity(&mut self.ennemies, &self.player);
+            player_movement.y = -MOVE_DISTANCE;
         }
         
         if is_key_down(KeyCode::Right) {
-            self.player.pos.x += MOVE_DISTANCE;
-            Self::adjust_ennemies_velocity(&mut self.ennemies, &self.player);
+            player_movement.x = MOVE_DISTANCE;
         }
         
         if is_key_down(KeyCode::Left) {
-            self.player.pos.x -= MOVE_DISTANCE;
-            Self::adjust_ennemies_velocity(&mut self.ennemies, &self.player);
+            player_movement.x = -MOVE_DISTANCE;
         }
+        
+        adjust_ennemies_velocity(&mut self.ennemies, &self.player);
+        
+        self.player.move_by(player_movement);
         
         if is_key_pressed(KeyCode::Space) {
             let mut mouse_pos = Vec2::new(0., 0.);
@@ -143,34 +163,33 @@ impl Game {
     }
     
     fn populate_ennemies(&mut self) {
-            while self.ennemies.len() < MAX_ENNEMIES_NB.into() {
-                let new_ennemy_pos = Vec2 { 
-                    x: self.rng.x_pos_gen.sample(&mut self.rng.rng), 
-                    y: self.rng.y_pos_gen.sample(&mut self.rng.rng) 
-                };
-                self.ennemies.push(Ennemy { 
-                    pos: new_ennemy_pos, 
-                    vel: compute_normalized_vector(new_ennemy_pos, self.player.pos),
-                    collided: false
-                });
-            }
+        while self.ennemies.len() < MAX_ENNEMIES_NB.into() {
+            let new_ennemy_pos = Vec2 { 
+                x: self.rng.x_pos_gen.sample(&mut self.rng.rng), 
+                y: self.rng.y_pos_gen.sample(&mut self.rng.rng) 
+            };
+            self.ennemies.push(Ennemy { 
+                pos: new_ennemy_pos, 
+                vel: compute_normalized_vector(new_ennemy_pos, self.player.pos),
+                collided: false
+            });
         }
-        
-        fn adjust_ennemies_velocity(ennemies: &mut Vec<Ennemy>, player: &Player) {
-            for ennemy in ennemies.iter_mut() {
-                ennemy.vel = compute_normalized_vector(ennemy.pos, player.pos);
-            }
-        }
-        
     }
+}
 
-    fn compute_normalized_vector(pos_start: Vec2, pos_end: Vec2) -> Vec2 {
-        let vector = pos_end - pos_start;
-        
-        let y_member = pos_end.y - pos_start.y;
-        let x_member = pos_end.x - pos_start.x;
-        
-        let magnitude = vector.length();
-        
-        Vec2::new(x_member / magnitude, y_member / magnitude)
+fn adjust_ennemies_velocity(ennemies: &mut Vec<Ennemy>, player: &Player) {
+    for ennemy in ennemies.iter_mut() {
+        ennemy.vel = compute_normalized_vector(ennemy.pos, player.pos);
     }
+}
+
+fn compute_normalized_vector(pos_start: Vec2, pos_end: Vec2) -> Vec2 {
+    let vector = pos_end - pos_start;
+    
+    let y_member = pos_end.y - pos_start.y;
+    let x_member = pos_end.x - pos_start.x;
+    
+    let magnitude = vector.length();
+    
+    Vec2::new(x_member / magnitude, y_member / magnitude)
+}

@@ -1,4 +1,4 @@
-use std::panic;
+use std::{panic, thread::sleep};
 
 use macroquad::prelude::*;
 
@@ -28,9 +28,19 @@ async fn main() {
     
     let mut game = Game::new(sword_texture);
     loop {     
-        game.update();
+        let game_data = game.update();
+        // println!("Game data: is_game_over = {}, score = {}", game_data.is_game_over, game_data.score);
+        // if game_data.is_game_over {
+        //     break;
+        // }
 
-        next_frame().await
+        // let last_frame_time = get_frame_time();
+        // if last_frame_time < 1.0 {
+        //     println!("Sleeping for {} seconds", 1.0 - last_frame_time);
+        //     sleep(std::time::Duration::from_secs_f32(1.0 - last_frame_time));
+        // }
+        draw_fps();
+        next_frame().await;
     }   
 }
 
