@@ -14,7 +14,7 @@ impl Player {
     pub(crate) fn new(pos: Vec2, sword: Sword) -> Self {
         Player {
             pos,
-            hp: 10,
+            hp: 1,
             sword,
         }
     }

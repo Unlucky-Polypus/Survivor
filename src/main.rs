@@ -1,4 +1,4 @@
-use std::{panic, thread::sleep};
+use std::{panic};
 
 use macroquad::prelude::*;
 
@@ -10,6 +10,13 @@ mod collision;
 mod game;
 mod entity;
 mod survivor_rng;
+
+enum GameState {
+    Game,
+    Pause,
+    GameOver,
+    MainMenu,
+}
 
 
 #[macroquad::main("BasicShapes")]
@@ -26,22 +33,73 @@ async fn main() {
     
     set_default_filter_mode(FilterMode::Nearest);
     
-    let mut game = Game::new(sword_texture);
-    loop {     
-        let game_data = game.update();
-        // println!("Game data: is_game_over = {}, score = {}", game_data.is_game_over, game_data.score);
+    let mut game = Game::new(&sword_texture);
+    let mut game_state = GameState::MainMenu;
+
+    loop {
+        clear_background(BLACK);
+        match game_state {
+            GameState::MainMenu => {
+                game_state = state_main_menu();
+            }
+            GameState::Game => {
+                game_state = state_game(&mut game);
+            }
+            GameState::Pause => {
+                game_state = state_pause();
+            }
+            GameState::GameOver => {
+                draw_text("Game Over! Press any key to restart.", 10., 10., 20., WHITE);
+                if !get_keys_pressed().is_empty() {
+                    game = Game::new(&sword_texture);
+                    game_state = GameState::Game;
+                }
+            }
+        }
+        draw_fps();
+        next_frame().await;
+    }
+}
+
+fn state_game(game: &mut Game) -> GameState {
+    if is_key_pressed(KeyCode::Escape) {
+        return GameState::Pause;
+    }
+    let game_data = game.update();
+    if game_data.is_game_over {
+        GameState::GameOver
+    } else {
+        GameState::Game
+    }
+     // println!("Game data: is_game_over = {}, score = {}", game_data.is_game_over, game_data.score);
         // if game_data.is_game_over {
         //     break;
         // }
-
+        
         // let last_frame_time = get_frame_time();
         // if last_frame_time < 1.0 {
         //     println!("Sleeping for {} seconds", 1.0 - last_frame_time);
         //     sleep(std::time::Duration::from_secs_f32(1.0 - last_frame_time));
         // }
-        draw_fps();
-        next_frame().await;
-    }   
 }
 
+fn state_main_menu() -> GameState {
+    draw_text("Press any key to start", 10., 10., 20., WHITE);
+    if !get_keys_pressed().is_empty() {
+        println!("Starting the game...");
+        GameState::Game
+    } else {
+        GameState::MainMenu
+    }
+}
+
+fn state_pause() -> GameState {
+    draw_text("Game paused. Press any key to resume.", 10., 10., 20., WHITE);
+    if !get_keys_pressed().is_empty() {
+        GameState::Game
+    } else {
+        GameState::Pause
+    }
     
+}
+

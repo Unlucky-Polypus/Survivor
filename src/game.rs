@@ -29,12 +29,13 @@ pub struct GameData {
     pub(crate) score: i16,
 }
 
+
 impl Game {
-    pub(crate) fn new(sword_texture: Texture2D) -> Self {
+    pub(crate) fn new(sword_texture: &Texture2D) -> Self {
         let sword = Sword {
             position: vec2(screen_width() / 2.0, screen_height() / 2.0),
             angle: 0.0,
-            texture: sword_texture,
+            texture: sword_texture.clone(),
             size_ratio: 8.0,
         };
         
@@ -150,7 +151,6 @@ impl Game {
     }
     
     fn draw(&self) {
-        clear_background(BLACK);
         for bullet in self.bullets.iter() {
             draw_circle(bullet.pos.x, bullet.pos.y, BULLET_RADIUS, WHITE);
         }
