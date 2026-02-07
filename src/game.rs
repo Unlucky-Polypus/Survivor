@@ -4,12 +4,12 @@ use rand_distr::Distribution;
 use crate::collision::hitbox_intersects;
 use crate::entity::bullet::Bullet;
 use crate::entity::ennemy::Ennemy;
-use crate::entity::player::Player;
+use crate::entity::player::{Direction, Player};
 use crate::survivor_rng::SurvivorRng;
 use crate::sword::Sword;
 use crate::traits::collidable::Collidable;
 
-const MOVE_DISTANCE: f32 = 2.;
+const MOVE_DISTANCE: f32 = 1.;
 const BULLET_RADIUS: f32 = 3.;
 const BULLET_SPEED: f32 = 4.;
 const PLAYER_RADIUS: f32 = 10.;
@@ -31,7 +31,7 @@ pub struct GameData {
 
 
 impl Game {
-    pub(crate) fn new(sword_texture: &Texture2D) -> Self {
+    pub(crate) fn new(sword_texture: &Texture2D, player_idle_texture: &Texture2D, player_walking_texture: &Texture2D) -> Self {
         let sword = Sword {
             position: vec2(screen_width() / 2.0, screen_height() / 2.0),
             angle: 0.0,
@@ -44,7 +44,9 @@ impl Game {
                 screen_width() / 2.0, 
                 screen_height() / 2.0
             ), 
-            sword
+            sword,
+            player_idle_texture.clone(),
+            player_walking_texture.clone()
         );
         
         
@@ -118,27 +120,29 @@ impl Game {
     }
     
     fn get_input(&mut self) {
-        let mut player_movement = Vec2::ZERO;
+        let player_movement: Vec2;
+        let player_direction: Direction;
         
         if is_key_down(KeyCode::Down) {
-            player_movement.y = MOVE_DISTANCE;
-        }
-        
-        if is_key_down(KeyCode::Up) {
-            player_movement.y = -MOVE_DISTANCE;
-        }
-        
-        if is_key_down(KeyCode::Right) {
-            player_movement.x = MOVE_DISTANCE;
-        }
-        
-        if is_key_down(KeyCode::Left) {
-            player_movement.x = -MOVE_DISTANCE;
+            player_movement = Vec2::new(0., MOVE_DISTANCE);
+            player_direction = Direction::Down;
+        } else if is_key_down(KeyCode::Up) {
+            player_movement = Vec2::new(0., -MOVE_DISTANCE);
+            player_direction = Direction::Up;
+        } else if is_key_down(KeyCode::Right) {
+            player_movement = Vec2::new(MOVE_DISTANCE, 0.);
+            player_direction = Direction::Right;
+        } else if is_key_down(KeyCode::Left) {
+            player_movement = Vec2::new(-MOVE_DISTANCE, 0.);
+            player_direction = Direction::Left;
+        } else {
+            player_movement = Vec2::new(0., 0.);
+            player_direction = Direction::None;
         }
         
         adjust_ennemies_velocity(&mut self.ennemies, &self.player);
         
-        self.player.move_by(player_movement);
+        self.player.move_by(player_movement, player_direction);
         
         if is_key_pressed(KeyCode::Space) {
             let mut mouse_pos = Vec2::new(0., 0.);
