@@ -31,7 +31,7 @@ async fn main() {
         Err(error) => panic!("{error}"),
     }
     
-    let player_idle_texture_result = load_texture("assets/proto1_idle.png").await;
+    let player_idle_texture_result = load_texture("assets/player_idle.png").await;
     let player_idle_texture: Texture2D;
     match player_idle_texture_result {
         Ok(texture) => {
@@ -40,7 +40,7 @@ async fn main() {
         Err(error) => panic!("{error}"),
     }
     
-    let player_walking_texture_result = load_texture("assets/proto1_walk.png").await;
+    let player_walking_texture_result = load_texture("assets/player_walk.png").await;
     let player_walking_texture: Texture2D;
     match player_walking_texture_result {
         Ok(texture) => {
@@ -48,10 +48,29 @@ async fn main() {
         }
         Err(error) => panic!("{error}"),
     }
+
+    let dagger_texture_result = load_texture("assets/dagger.png").await;
+    let dagger_texture: Texture2D;
+    match dagger_texture_result {
+        Ok(texture) => {
+            dagger_texture = texture;
+        }
+        Err(error) => panic!("{error}"),
+    }
+
+    let orc_texture_result = load_texture("assets/orc.png").await;
+    let orc_texture: Texture2D;
+    match orc_texture_result {
+        Ok(texture) => {
+            orc_texture = texture;
+        }
+        Err(error) => panic!("{error}"),
+    }
     
     set_default_filter_mode(FilterMode::Nearest);
     
-    let mut game = Game::new(&sword_texture, &player_idle_texture, &player_walking_texture);
+    let mut game = Game::new(&sword_texture, &player_idle_texture, &player_walking_texture, 
+        &dagger_texture, &orc_texture);
     let mut game_state = GameState::MainMenu;
     
     loop {
@@ -69,7 +88,8 @@ async fn main() {
             GameState::GameOver => {
                 draw_text("Game Over! Press any key to restart.", 10., 10., 20., WHITE);
                 if !get_keys_pressed().is_empty() {
-                    game = Game::new(&sword_texture, &player_idle_texture, &player_walking_texture);
+                    game = Game::new(&sword_texture, &player_idle_texture, &player_walking_texture,
+                        &dagger_texture, &orc_texture);
                     game_state = GameState::Game;
                 }
             }

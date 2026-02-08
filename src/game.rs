@@ -3,8 +3,9 @@ use rand_distr::Distribution;
 
 use crate::collision::hitbox_intersects;
 use crate::entity::bullet::Bullet;
+use crate::entity::character::{CharTextureParams, Character, Direction};
 use crate::entity::ennemy::Ennemy;
-use crate::entity::player::{Direction, Player};
+use crate::entity::player::Player;
 use crate::survivor_rng::SurvivorRng;
 use crate::sword::Sword;
 use crate::traits::collidable::Collidable;
@@ -22,6 +23,10 @@ pub struct Game {
     ennemies: Vec<Ennemy>,
     score: i16,
     rng: SurvivorRng,
+    player_idle_texture: Texture2D,
+    player_walking_texture: Texture2D,
+    orc_texture: Texture2D,
+    dagger_texture: Texture2D,
 }
 
 pub struct GameData {
@@ -31,7 +36,8 @@ pub struct GameData {
 
 
 impl Game {
-    pub(crate) fn new(sword_texture: &Texture2D, player_idle_texture: &Texture2D, player_walking_texture: &Texture2D) -> Self {
+    pub(crate) fn new(sword_texture: &Texture2D, player_idle_texture: &Texture2D, 
+        player_walking_texture: &Texture2D, dagger_texture: &Texture2D, orc_texture: &Texture2D) -> Self {
         let sword = Sword {
             position: vec2(screen_width() / 2.0, screen_height() / 2.0),
             angle: 0.0,
@@ -45,8 +51,6 @@ impl Game {
                 screen_height() / 2.0
             ), 
             sword,
-            player_idle_texture.clone(),
-            player_walking_texture.clone()
         );
         
         
@@ -69,6 +73,10 @@ impl Game {
             ennemies,
             score,
             rng,
+            player_idle_texture: player_idle_texture.clone(),
+            player_walking_texture: player_walking_texture.clone(),
+            orc_texture: orc_texture.clone(),
+            dagger_texture: dagger_texture.clone(),
         }
     }
     
@@ -80,7 +88,7 @@ impl Game {
         self.draw();
         
         GameData {
-            is_game_over: self.player.hp <= 0,
+            is_game_over: self.player.character.hp <= 0,
             score: self.score,
         }
     }
@@ -91,7 +99,7 @@ impl Game {
             bullet.pos += bullet.vel * BULLET_SPEED;
             
             for ennemy in self.ennemies.iter_mut() {
-                if (ennemy.pos - bullet.pos).length() < PLAYER_RADIUS {
+                if (ennemy.character.pos - bullet.pos).length() < PLAYER_RADIUS {
                     self.score += 1;
                     bullet.collided = true;
                     ennemy.collided = true;
@@ -102,11 +110,12 @@ impl Game {
         let weapon_hitbox = self.player.weapon_hitbox();
         
         // Moving ennemies + checking ennemies - player collision
-        // TODO : Player collision
         for ennemy in self.ennemies.iter_mut() {
-            ennemy.pos += ennemy.vel * ENNEMY_SPEED;
+            let direction = get_direction_from_vector(ennemy.vel);
+            ennemy.move_by(ennemy.vel * ENNEMY_SPEED, direction);
+
             if hitbox_intersects(&ennemy.hitbox(), &self.player.hitbox()) {
-                self.player.hp -= 1;
+                self.player.character.hp -= 1;
                 ennemy.collided = true;
             }
             if hitbox_intersects(&weapon_hitbox, &ennemy.hitbox()) {
@@ -148,22 +157,23 @@ impl Game {
             let mut mouse_pos = Vec2::new(0., 0.);
             (mouse_pos.x, mouse_pos.y) = mouse_position();
             
-            let normalize_vect = compute_normalized_vector(self.player.pos, mouse_pos);
+            let normalize_vect = compute_normalized_vector(
+                self.player.character.pos, mouse_pos);
             
-            self.bullets.push(Bullet { pos: self.player.pos, vel: normalize_vect, collided: false });
+            self.bullets.push(Bullet { pos: self.player.character.pos, vel: normalize_vect, collided: false });
         }
     }
     
-    fn draw(&self) {
+    fn draw(&mut self) {
         for bullet in self.bullets.iter() {
             draw_circle(bullet.pos.x, bullet.pos.y, BULLET_RADIUS, WHITE);
         }
-        for ennemy in self.ennemies.iter() {
-            draw_circle(ennemy.pos.x, ennemy.pos.y, PLAYER_RADIUS, RED);
+        for ennemy in self.ennemies.iter_mut() {
+            ennemy.draw(&self.orc_texture);
         }
-        self.player.draw();
+        self.player.draw(&self.player_idle_texture, &self.player_walking_texture);
         draw_text(&format!("Score : {}", self.score), 10., 15., 20., WHITE);
-        draw_text(&format!("HP : {}", self.player.hp), 10., 32., 20., WHITE);
+        draw_text(&format!("HP : {}", self.player.character.hp), 10., 32., 20., WHITE);
     }
     
     fn populate_ennemies(&mut self) {
@@ -172,18 +182,17 @@ impl Game {
                 x: self.rng.x_pos_gen.sample(&mut self.rng.rng), 
                 y: self.rng.y_pos_gen.sample(&mut self.rng.rng) 
             };
-            self.ennemies.push(Ennemy { 
-                pos: new_ennemy_pos, 
-                vel: compute_normalized_vector(new_ennemy_pos, self.player.pos),
-                collided: false
-            });
+            self.ennemies.push(Ennemy::new( 
+                new_ennemy_pos, 
+                compute_normalized_vector(new_ennemy_pos, self.player.character.pos),
+            ));
         }
     }
 }
 
 fn adjust_ennemies_velocity(ennemies: &mut Vec<Ennemy>, player: &Player) {
     for ennemy in ennemies.iter_mut() {
-        ennemy.vel = compute_normalized_vector(ennemy.pos, player.pos);
+        ennemy.vel = compute_normalized_vector(ennemy.character.pos, player.character.pos);
     }
 }
 
@@ -197,3 +206,22 @@ fn compute_normalized_vector(pos_start: Vec2, pos_end: Vec2) -> Vec2 {
     
     Vec2::new(x_member / magnitude, y_member / magnitude)
 }
+
+fn get_direction_from_vector(vector: Vec2) -> Direction {
+    if vector.x == 0. && vector.y == 0. {
+        Direction::None
+    } else if vector.x.abs() > vector.y.abs() {
+        if vector.x > 0. {
+            Direction::Right
+        } else {
+            Direction::Left
+        }
+    } else {
+        if vector.y > 0. {
+            Direction::Down
+        } else {
+            Direction::Up
+        }
+    }
+}
+
