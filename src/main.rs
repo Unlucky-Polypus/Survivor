@@ -5,7 +5,6 @@ use macroquad::prelude::*;
 use crate::game::Game;
 
 mod sword;
-mod traits;
 mod collision;
 mod game;
 mod entity;

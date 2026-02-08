@@ -1,13 +1,13 @@
 use macroquad::prelude::*;
 
-use crate::{collision::Hitbox, entity::character::{CharTextureParams, Character, Direction}, traits::collidable::Collidable};
+use crate::{collision::{Collidable, Hitbox, HitboxParams}, entity::character::{CharTextureParams, Character, Direction}};
 
 const FRAME_DURATION: f32 = 0.12; // Duration of each animation frame in seconds
 const NB_FRAMES: u8 = 11; // Number of frames in the player animation
 const FRAME_WIDTH: f32 = 64.0; // Width of each frame in the sprite sheet
 const FRAME_HEIGHT: f32 = 64.0; // Height of each frame in the sprite sheet
 const ENNEMY_WIDTH: f32 = 29.0; // Width of the ennemy hitbox
-const ENNEMY_HEIGHT: f32 = 41.0; // Height of the enn
+const ENNEMY_HEIGHT: f32 = 43.0; // Height of the enn
 
 pub(crate) struct Ennemy {
     pub(crate) character: Character,
@@ -17,8 +17,12 @@ pub(crate) struct Ennemy {
 
 impl Ennemy {
     pub(crate) fn new(pos: Vec2, vel: Vec2) -> Self {
+        let hitbox_params = HitboxParams {
+            size: Vec2 { x: ENNEMY_WIDTH, y: ENNEMY_HEIGHT },
+            offset_frame: Vec2 { x: 0.0, y: 8.0 },
+        };
         Ennemy {
-            character: Character::new(pos, Vec2 { x: ENNEMY_WIDTH, y: ENNEMY_HEIGHT }),
+            character: Character::new(pos, hitbox_params),
             vel,
             collided: false,
         }

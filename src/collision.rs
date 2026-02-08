@@ -1,6 +1,16 @@
 use macroquad::prelude::*;
 use macroquad::math::Circle;
 
+pub trait Collidable {
+    fn hitbox(&self) -> Hitbox;
+}
+
+pub struct HitboxParams {
+    pub size: Vec2,
+    // Offset from the center of the Texture
+    pub offset_frame: Vec2,
+}
+
 // Debug draw helpers
 pub fn draw_hitbox(hitbox: &Hitbox, color: Color) {
     match hitbox {

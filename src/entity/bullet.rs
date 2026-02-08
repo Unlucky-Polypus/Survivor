@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-use crate::{collision::Hitbox, traits::collidable::Collidable};
+use crate::{collision::Hitbox, collision::Collidable};
 
 const RADIUS: f32 = 10.;
 

@@ -1,24 +1,24 @@
 use macroquad::prelude::*;
 
-use crate::{collision::{Hitbox, OBB}, traits::collidable::Collidable};
+use crate::collision::{Collidable, Hitbox, HitboxParams, OBB};
 
 pub(crate) struct Character {
     pub(crate) pos: Vec2,
     pub(crate) hp: i16,
     direction: Direction,
-    size: Vec2,
+    hitbox_params: HitboxParams,
     anim_timer: f32,
     frame: u8,
     is_idle: bool,
 }
 
 impl Character {
-    pub(crate) fn new(pos: Vec2, size: Vec2) -> Self {
+    pub(crate) fn new(pos: Vec2, hitbox_params: HitboxParams) -> Self {
         Character {
             pos,
             hp: 1,
             direction: Direction::Down,
-            size,
+            hitbox_params,
             anim_timer: 0.0,
             frame: 0,
             is_idle: true,
@@ -91,12 +91,12 @@ impl Collidable for Character {
     fn hitbox(&self) -> Hitbox {
         Hitbox::OBB(OBB {
             center: Vec2 { 
-                x: self.pos.x,
-                y: self.pos.y,
+                x: self.pos.x + self.hitbox_params.offset_frame.x,
+                y: self.pos.y + self.hitbox_params.offset_frame.y,
             },
             half: Vec2 {
-                x: self.size.x / 2.0,
-                y: self.size.y / 2.0,
+                x: self.hitbox_params.size.x / 2.0,
+                y: self.hitbox_params.size.y / 2.0,
             },
             rotation: 0.0,
         })

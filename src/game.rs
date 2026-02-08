@@ -1,14 +1,13 @@
 use macroquad::prelude::*;
 use rand_distr::Distribution;
 
-use crate::collision::hitbox_intersects;
+use crate::collision::{Collidable, hitbox_intersects};
 use crate::entity::bullet::Bullet;
 use crate::entity::character::{CharTextureParams, Character, Direction};
 use crate::entity::ennemy::Ennemy;
 use crate::entity::player::Player;
 use crate::survivor_rng::SurvivorRng;
 use crate::sword::Sword;
-use crate::traits::collidable::Collidable;
 
 const MOVE_DISTANCE: f32 = 1.;
 const BULLET_RADIUS: f32 = 3.;

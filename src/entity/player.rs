@@ -2,13 +2,13 @@ use std::u8;
 
 use macroquad::prelude::*;
 
-use crate::{collision::Hitbox, entity::character::{CharTextureParams, Character, Direction}, sword::Sword, traits::collidable::Collidable};
+use crate::{collision::{Collidable, Hitbox, HitboxParams}, entity::character::{CharTextureParams, Character, Direction}, sword::Sword};
 
 const FRAME_DURATION: f32 = 0.12; // Duration of each animation frame in seconds
 const NB_FRAMES: u8 = 8; // Number of frames in the player animation
 const FRAME_WIDTH: f32 = 192.0; // Width of each frame in the sprite sheet
 const FRAME_HEIGHT: f32 = 192.0; // Height of each frame in the sprite sheet
-const PLAYER_WIDTH: f32 = 22.0; // Width of the player hitbox
+const PLAYER_WIDTH: f32 = 27.0; // Width of the player hitbox
 const PLAYER_HEIGHT: f32 = 48.0; // Height of the player hitbox
 
 pub(crate) struct Player {
@@ -18,9 +18,14 @@ pub(crate) struct Player {
 
 impl Player {
     pub(crate) fn new(pos: Vec2, sword: Sword) -> Self {
+        let hitbox_params = HitboxParams {
+            size: Vec2 { x: PLAYER_WIDTH, y: PLAYER_HEIGHT },
+            offset_frame: Vec2 { x: 0.0, y: 6.0 },
+        };
+
         let character = Character::new(
             pos, 
-            Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT)
+            hitbox_params
         );
         
         Player {

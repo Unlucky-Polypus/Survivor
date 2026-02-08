@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::{collision, collision::{Hitbox, OBB}, traits::collidable::Collidable};
+use crate::{collision, collision::{Hitbox, OBB, Collidable}};
 
 // The sword hitbox is 60% of the png size from the tip of the sword to the handle
 const HITBOX_WIDTH_RATIO: f32 = 0.7;
