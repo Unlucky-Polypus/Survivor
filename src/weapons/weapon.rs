@@ -1,21 +1,30 @@
 use macroquad::prelude::*;
-use crate::{collision, collision::{Hitbox, OBB, Collidable}};
 
-// The sword hitbox is 60% of the png size from the tip of the sword to the handle
-const HITBOX_WIDTH_RATIO: f32 = 0.7;
-const HITBOX_HEIGTH_RATIO: f32 = 0.53; // Blade width = 115 pixels, png height is 215 px
+use crate::collision::{self, Collidable, Hitbox, HitboxParams, OBB};
 
-
-pub struct Sword {
+pub struct Weapon {
     pub position: Vec2,
     pub angle: f32,
-    pub texture: Texture2D,
     pub size_ratio: f32,
+    hitbox_params: WeaponHitboxParams,
 }
 
-impl Sword {
-    /// Draw the sword taking into account its rotation and position
-    pub fn draw(&self) {
+// pub trait WeaponTrait {
+//     fn update(&self);
+// }
+
+impl Weapon {
+    pub fn new(position: Vec2, angle: f32, size_ratio: f32, 
+        hitbox_params: WeaponHitboxParams) -> Self {
+        Self {
+            position,
+            angle,
+            size_ratio,
+            hitbox_params,
+        }
+    }
+    /// Draw the weapon taking into account its rotation and position
+    pub fn draw(&self, texture: &Texture2D, offset: Vec2) {
         
         // The pivot point is at the center of the handle and the position is at the top-left 
         // corner of the texture
@@ -24,17 +33,10 @@ impl Sword {
             y: self.position.y
         };
 
-        let texture_position = Vec2 {
-            x: self.position.x + 12.0,
-            y: self.position.y - (self.texture.size().y / self.size_ratio / 2.0)
-        };
-
-        // draw_circle(texture_position.x, texture_position.y, 5.0, RED);
-        // draw_circle(pivot.x, pivot.y, 5.0, GREEN); 
-        // draw_circle(self.position.x, self.position.y, 5.0, BLUE);
+        let texture_position = self.position + offset;
         
         draw_texture_ex(
-            &self.texture,
+            texture,
             texture_position.x,
             texture_position.y,
             WHITE,
@@ -45,34 +47,34 @@ impl Sword {
                 ..Default::default()
             },
         );
-
+        
         // Debug: draw the sword hitbox in debug builds
         #[cfg(debug_assertions)]
         {
             collision::draw_hitbox(&self.hitbox(), RED);
         }
     }
-    
+
     /// Scale the size of the texture depending on the size ratio
     fn adjusted_size(&self) -> Vec2 {
         Vec2 { 
-            x: &self.texture.size().x / self.size_ratio, 
-            y: &self.texture.size().y / self.size_ratio 
+            x: self.hitbox_params.params.size.x * self.size_ratio, 
+            y: self.hitbox_params.params.size.y * self.size_ratio 
         }
     }
 }
 
-/// Implement Collidable trait for Sword to provide its hitbox
-impl Collidable for Sword {
+/// Implement Collidable trait for Weapon to provide its hitbox
+impl Collidable for Weapon {
     fn hitbox(&self) -> Hitbox {
         let adjusted_size = self.adjusted_size();
-        let height = HITBOX_HEIGTH_RATIO * adjusted_size.y;
+        let height = self.hitbox_params.height_ratio * adjusted_size.y;
         // `self.position` is the top-left corner of the drawn texture,
         // so compute hitbox position directly from it.
-        let x = self.position.x + ((1.0 - HITBOX_WIDTH_RATIO) * adjusted_size.x) + 12.0;
-        let y = self.position.y + ((1.0 - HITBOX_HEIGTH_RATIO) * adjusted_size.y) - (adjusted_size.y - (adjusted_size.y - height) / 2.0);
+        let x = self.position.x + ((1.0 - self.hitbox_params.width_ratio) * adjusted_size.x - self.hitbox_params.params.offset_frame.x);
+        let y = self.position.y + ((1.0 - self.hitbox_params.height_ratio) * adjusted_size.y) - (adjusted_size.y - (adjusted_size.y - height) / 2.0) - self.hitbox_params.params.offset_frame.y;
         // Width and height of the hitbox (the blade)
-        let w = HITBOX_WIDTH_RATIO * adjusted_size.x;
+        let w = self.hitbox_params.width_ratio * adjusted_size.x;
         let h = height;
 
         let half_size = Vec2{ x: w / 2.0, y: h / 2.0 };
@@ -89,4 +91,10 @@ impl Collidable for Sword {
         })
 
     }
+}
+
+pub struct WeaponHitboxParams {
+    pub params: HitboxParams,
+    pub width_ratio: f32,
+    pub height_ratio: f32,
 }

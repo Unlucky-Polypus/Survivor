@@ -3,18 +3,20 @@ use rand_distr::Distribution;
 
 use crate::collision::{Collidable, hitbox_intersects};
 use crate::entity::bullet::Bullet;
-use crate::entity::character::{CharTextureParams, Character, Direction};
+use crate::entity::character::Direction;
 use crate::entity::ennemy::Ennemy;
 use crate::entity::player::Player;
 use crate::survivor_rng::SurvivorRng;
-use crate::sword::Sword;
+use crate::weapons::dagger::DaggerAggregate;
+use crate::weapons::sword::Sword;
+use crate::weapons::weapon::{Weapon, WeaponHitboxParams};
 
 const MOVE_DISTANCE: f32 = 1.;
 const BULLET_RADIUS: f32 = 3.;
-const BULLET_SPEED: f32 = 4.;
 const PLAYER_RADIUS: f32 = 10.;
 const MAX_ENNEMIES_NB: u8 = 10;
 const ENNEMY_SPEED: f32 = 0.1;
+
 
 pub struct Game {
     player: Player,
@@ -25,7 +27,6 @@ pub struct Game {
     player_idle_texture: Texture2D,
     player_walking_texture: Texture2D,
     orc_texture: Texture2D,
-    dagger_texture: Texture2D,
 }
 
 pub struct GameData {
@@ -37,12 +38,14 @@ pub struct GameData {
 impl Game {
     pub(crate) fn new(sword_texture: &Texture2D, player_idle_texture: &Texture2D, 
         player_walking_texture: &Texture2D, dagger_texture: &Texture2D, orc_texture: &Texture2D) -> Self {
-        let sword = Sword {
-            position: vec2(screen_width() / 2.0, screen_height() / 2.0),
-            angle: 0.0,
-            texture: sword_texture.clone(),
-            size_ratio: 8.0,
-        };
+        let sword = Sword::new(
+            vec2(screen_width() / 2.0, screen_height() / 2.),
+            0.,
+            0.2,
+            sword_texture.clone()
+        );
+            
+        let daggers = DaggerAggregate::new(dagger_texture.clone());
         
         let player = Player::new(
             Vec2::new(
@@ -50,6 +53,7 @@ impl Game {
                 screen_height() / 2.0
             ), 
             sword,
+            daggers,
         );
         
         
@@ -75,10 +79,9 @@ impl Game {
             player_idle_texture: player_idle_texture.clone(),
             player_walking_texture: player_walking_texture.clone(),
             orc_texture: orc_texture.clone(),
-            dagger_texture: dagger_texture.clone(),
         }
     }
-    
+        
     pub(crate) fn update(&mut self) -> GameData {
         self.get_input();
         self.player.udpate();
@@ -91,33 +94,31 @@ impl Game {
             score: self.score,
         }
     }
-    
+        
     fn manage_collisions(&mut self) {
         // Moving bullets + checking bullet - ennemies collisions
-        for bullet in self.bullets.iter_mut() {
-            bullet.pos += bullet.vel * BULLET_SPEED;
+        // for bullet in self.bullets.iter_mut() {
+        //     bullet.pos += bullet.vel * BULLET_SPEED;
             
-            for ennemy in self.ennemies.iter_mut() {
-                if (ennemy.character.pos - bullet.pos).length() < PLAYER_RADIUS {
-                    self.score += 1;
-                    bullet.collided = true;
-                    ennemy.collided = true;
-                } 
-            }
-        }
-        
-        let weapon_hitbox = self.player.weapon_hitbox();
+        //     for ennemy in self.ennemies.iter_mut() {
+        //         if (ennemy.character.pos - bullet.pos).length() < PLAYER_RADIUS {
+        //             self.score += 1;
+        //             bullet.collided = true;
+        //             ennemy.collided = true;
+        //         } 
+        //     }
+        // }
         
         // Moving ennemies + checking ennemies - player collision
         for ennemy in self.ennemies.iter_mut() {
             let direction = get_direction_from_vector(ennemy.vel);
             ennemy.move_by(ennemy.vel * ENNEMY_SPEED, direction);
-
+            
             if hitbox_intersects(&ennemy.hitbox(), &self.player.hitbox()) {
                 self.player.character.hp -= 1;
                 ennemy.collided = true;
             }
-            if hitbox_intersects(&weapon_hitbox, &ennemy.hitbox()) {
+            if self.player.weapons_collides_with(&ennemy.hitbox()) {
                 self.score += 1;
                 ennemy.collided = true;
             }
@@ -126,7 +127,7 @@ impl Game {
         self.bullets.retain(|bullet| !bullet.collided);
         self.ennemies.retain(|ennemy| !ennemy.collided);
     }
-    
+        
     fn get_input(&mut self) {
         let player_movement: Vec2;
         let player_direction: Direction;
@@ -158,11 +159,12 @@ impl Game {
             
             let normalize_vect = compute_normalized_vector(
                 self.player.character.pos, mouse_pos);
-            
-            self.bullets.push(Bullet { pos: self.player.character.pos, vel: normalize_vect, collided: false });
-        }
+                
+                self.player.throw_dagger(normalize_vect, normalize_vect.y.atan2(normalize_vect.x));
+                // self.bullets.push(Bullet { pos: self.player.character.pos, vel: normalize_vect, collided: false });
+            }
     }
-    
+            
     fn draw(&mut self) {
         for bullet in self.bullets.iter() {
             draw_circle(bullet.pos.x, bullet.pos.y, BULLET_RADIUS, WHITE);
@@ -174,7 +176,7 @@ impl Game {
         draw_text(&format!("Score : {}", self.score), 10., 15., 20., WHITE);
         draw_text(&format!("HP : {}", self.player.character.hp), 10., 32., 20., WHITE);
     }
-    
+            
     fn populate_ennemies(&mut self) {
         while self.ennemies.len() < MAX_ENNEMIES_NB.into() {
             let new_ennemy_pos = Vec2 { 
@@ -188,13 +190,13 @@ impl Game {
         }
     }
 }
-
+        
 fn adjust_ennemies_velocity(ennemies: &mut Vec<Ennemy>, player: &Player) {
     for ennemy in ennemies.iter_mut() {
         ennemy.vel = compute_normalized_vector(ennemy.character.pos, player.character.pos);
     }
 }
-
+        
 fn compute_normalized_vector(pos_start: Vec2, pos_end: Vec2) -> Vec2 {
     let vector = pos_end - pos_start;
     
@@ -205,7 +207,7 @@ fn compute_normalized_vector(pos_start: Vec2, pos_end: Vec2) -> Vec2 {
     
     Vec2::new(x_member / magnitude, y_member / magnitude)
 }
-
+        
 fn get_direction_from_vector(vector: Vec2) -> Direction {
     if vector.x == 0. && vector.y == 0. {
         Direction::None
@@ -223,4 +225,5 @@ fn get_direction_from_vector(vector: Vec2) -> Direction {
         }
     }
 }
-
+        
+        

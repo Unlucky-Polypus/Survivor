@@ -2,7 +2,7 @@ use std::u8;
 
 use macroquad::prelude::*;
 
-use crate::{collision::{Collidable, Hitbox, HitboxParams}, entity::character::{CharTextureParams, Character, Direction}, sword::Sword};
+use crate::{collision::{Collidable, Hitbox, HitboxParams, hitbox_intersects}, entity::character::{CharTextureParams, Character, Direction}, weapons::{dagger::DaggerAggregate, sword::Sword}};
 
 const FRAME_DURATION: f32 = 0.12; // Duration of each animation frame in seconds
 const NB_FRAMES: u8 = 8; // Number of frames in the player animation
@@ -14,10 +14,11 @@ const PLAYER_HEIGHT: f32 = 48.0; // Height of the player hitbox
 pub(crate) struct Player {
     pub(crate) character: Character,
     sword: Sword,
+    daggers: DaggerAggregate,
 }
 
 impl Player {
-    pub(crate) fn new(pos: Vec2, sword: Sword) -> Self {
+    pub(crate) fn new(pos: Vec2, sword: Sword, daggers: DaggerAggregate) -> Self {
         let hitbox_params = HitboxParams {
             size: Vec2 { x: PLAYER_WIDTH, y: PLAYER_HEIGHT },
             offset_frame: Vec2 { x: 0.0, y: 6.0 },
@@ -31,12 +32,13 @@ impl Player {
         Player {
             character,
             sword,
+            daggers,
         }
     }
     
     pub(crate) fn udpate(&mut self) {
-        let dt = get_frame_time();
-        self.sword.angle += 2.0 * dt;
+        self.sword.update();
+        self.daggers.update();
     }
     
     pub(crate) fn draw(&mut self, idle_texture: &Texture2D, walking_texture: &Texture2D, ) {
@@ -47,15 +49,22 @@ impl Player {
             frame_height: FRAME_HEIGHT,
         });
         self.sword.draw();
+        self.daggers.draw();
     }
     
-    pub(crate) fn weapon_hitbox(&self) -> Hitbox {
-        self.sword.hitbox()
+    pub(crate) fn weapons_collides_with(&mut self, hitbox: &Hitbox) -> bool {
+        let weapon_hitbox = self.sword.hitbox();
+        
+        hitbox_intersects(&weapon_hitbox, hitbox) || self.daggers.collide_with(hitbox)
     }
     
     pub(crate) fn move_by(&mut self, movement: Vec2, player_direction: Direction) {
         self.character.move_by(movement, player_direction);
-        self.sword.position = self.character.pos;
+        self.sword.weapon.position = self.character.pos;
+    }
+
+    pub(crate) fn throw_dagger(&mut self, vel: Vec2, angle: f32) {
+        self.daggers.new_dagger(self.character.pos, vel, angle, 0.07);
     }
 }
 
