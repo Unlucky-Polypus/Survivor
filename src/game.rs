@@ -27,6 +27,7 @@ pub struct Game {
     player_idle_texture: Texture2D,
     player_walking_texture: Texture2D,
     orc_texture: Texture2D,
+    grass_texture: Texture2D,
 }
 
 pub struct GameData {
@@ -37,7 +38,7 @@ pub struct GameData {
 
 impl Game {
     pub(crate) fn new(sword_texture: &Texture2D, player_idle_texture: &Texture2D, 
-        player_walking_texture: &Texture2D, dagger_texture: &Texture2D, orc_texture: &Texture2D) -> Self {
+        player_walking_texture: &Texture2D, dagger_texture: &Texture2D, orc_texture: &Texture2D, grass_texture: &Texture2D) -> Self {
         let sword = Sword::new(
             vec2(screen_width() / 2.0, screen_height() / 2.),
             0.,
@@ -79,6 +80,7 @@ impl Game {
             player_idle_texture: player_idle_texture.clone(),
             player_walking_texture: player_walking_texture.clone(),
             orc_texture: orc_texture.clone(),
+            grass_texture: grass_texture.clone(),
         }
     }
         
@@ -166,6 +168,7 @@ impl Game {
     }
             
     fn draw(&mut self) {
+        draw_texture(&self.grass_texture, 0., 0., WHITE);
         for bullet in self.bullets.iter() {
             draw_circle(bullet.pos.x, bullet.pos.y, BULLET_RADIUS, WHITE);
         }

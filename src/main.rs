@@ -65,12 +65,23 @@ async fn main() {
         }
         Err(error) => panic!("{error}"),
     }
+
+    let grass_texture_result = load_texture("assets/grass_zoom.png").await;
+    let grass_texture: Texture2D;
+    match grass_texture_result {
+        Ok(texture) => {
+            grass_texture = texture;
+        }
+        Err(error) => panic!("{error}"),
+    }
     
     set_default_filter_mode(FilterMode::Nearest);
     
     let mut game = Game::new(&sword_texture, &player_idle_texture, &player_walking_texture, 
-        &dagger_texture, &orc_texture);
+        &dagger_texture, &orc_texture, &grass_texture);
     let mut game_state = GameState::MainMenu;
+
+    println!("Screen width: {}, Screen height: {}", screen_width(), screen_height());
     
     loop {
         clear_background(BLACK);
@@ -88,7 +99,7 @@ async fn main() {
                 draw_text("Game Over! Press any key to restart.", 10., 10., 20., WHITE);
                 if !get_keys_pressed().is_empty() {
                     game = Game::new(&sword_texture, &player_idle_texture, &player_walking_texture,
-                        &dagger_texture, &orc_texture);
+                        &dagger_texture, &orc_texture, &grass_texture);
                     game_state = GameState::Game;
                 }
             }
