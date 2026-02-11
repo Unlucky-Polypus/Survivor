@@ -14,6 +14,9 @@ const PLAYER_RADIUS: f32 = 10.;
 const MAX_ENNEMIES_NB: u8 = 10;
 const ENNEMY_SPEED: f32 = 0.1;
 
+const MAP_WIDTH: f32 = 2048.;
+const MAP_HEIGHT: f32 = 2048.;
+
 
 pub struct Game {
     player: Player,
@@ -110,7 +113,7 @@ impl Game {
     }
         
     fn get_input(&mut self) {
-        let player_movement: Vec2;
+        let mut player_movement: Vec2;
         let player_direction: Direction;
         
         if is_key_down(KeyCode::Down) {
@@ -130,9 +133,22 @@ impl Game {
             player_direction = Direction::None;
         }
         
+        // Prevent player from moving outside of the map
+        if self.player.character.world_position.x + player_movement.x < 0. {
+            player_movement.x = -self.player.character.world_position.x;
+        } else if self.player.character.world_position.x + player_movement.x > MAP_WIDTH {
+            player_movement.x = MAP_WIDTH - self.player.character.world_position.x;
+        }
+        if self.player.character.world_position.y + player_movement.y < 0. {
+            player_movement.y = -self.player.character.world_position.y;
+        } else if self.player.character.world_position.y + player_movement.y > MAP_HEIGHT {
+            player_movement.y = MAP_HEIGHT - self.player.character.world_position.y;
+        }
+
+        self.player.move_by(player_movement, player_direction);
+
         adjust_ennemies_velocity(&mut self.ennemies, &self.player);
         
-        self.player.move_by(player_movement, player_direction);
         
         if is_key_pressed(KeyCode::Space) {
             let mut mouse_pos = Vec2::new(0., 0.);
