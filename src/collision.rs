@@ -12,26 +12,35 @@ pub struct HitboxParams {
 }
 
 // Debug draw helpers
-pub fn draw_hitbox(hitbox: &Hitbox, color: Color) {
+pub fn draw_hitbox(hitbox: &Hitbox, screen_center_position: Vec2, color: Color) {
     match hitbox {
-        Hitbox::OBB(obb) => draw_obb(obb, color),
-        Hitbox::Circle(c) => draw_circle_hitbox(c, color),
+        Hitbox::OBB(obb) => draw_obb(obb, screen_center_position, color),
+        Hitbox::Circle(c) => draw_circle_hitbox(c, screen_center_position, color),
     }
 }
 
-fn draw_obb(obb: &OBB, color: Color) {
-    let corners = obb.corners();
-    let thickness = 2.0;
+fn draw_obb(obb: &OBB, screen_origin_position: Vec2, color: Color) {
+    let screen_corners: Vec<Vec2> = obb.corners().iter()
+        .map(|corner| Vec2 {
+            x: corner.x - screen_origin_position.x,
+            y: corner.y - screen_origin_position.y,
+        })
+        .collect();
+    let thickness = 1.0;
     for i in 0..4 {
-        let a = corners[i];
-        let b = corners[(i + 1) % 4];
+        let a = screen_corners[i];
+        let b = screen_corners[(i + 1) % 4];
         draw_line(a.x, a.y, b.x, b.y, thickness, color);
     }
 }
 
-fn draw_circle_hitbox(c: &Circle, color: Color) {
-    let thickness = 2.0;
-    draw_circle_lines(c.x, c.y, c.r, thickness, color);
+fn draw_circle_hitbox(c: &Circle, screen_center_position: Vec2, color: Color) {
+    let thickness = 1.0;
+    let center = Vec2 {
+        x: c.x - screen_center_position.x,
+        y: c.y - screen_center_position.y,
+    };
+    draw_circle_lines(center.x, center.y, c.r, thickness, color);
 }
 
 pub enum Hitbox {
@@ -120,7 +129,7 @@ fn closest_point_on_obb(obb: &OBB, point: Vec2) -> Vec2 {
     let inv = rot.transpose(); // inverse pour une rotation
 
     // point dans l'espace local de l'OBB
-    let local = inv * (point - obb.center);
+    let local = inv * (point - obb.world_center_position);
 
     let clamped = vec2(
         local.x.clamp(-obb.half.x, obb.half.x),
@@ -128,12 +137,12 @@ fn closest_point_on_obb(obb: &OBB, point: Vec2) -> Vec2 {
     );
 
     // retour en espace monde
-    obb.center + rot * clamped
+    obb.world_center_position + rot * clamped
 }
 
 // Oriented Bounding Box
 pub struct OBB {
-    pub center: Vec2,
+    pub world_center_position: Vec2,
     pub half: Vec2,
     pub rotation: f32,
 }
@@ -153,10 +162,10 @@ impl OBB {
         let rot = Mat2::from_angle(self.rotation);
         
         [
-        self.center + rot * local[0],
-        self.center + rot * local[1],
-        self.center + rot * local[2],
-        self.center + rot * local[3],
+        self.world_center_position + rot * local[0],
+        self.world_center_position + rot * local[1],
+        self.world_center_position + rot * local[2],
+        self.world_center_position + rot * local[3],
         ]
     }
 }

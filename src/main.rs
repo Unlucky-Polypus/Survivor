@@ -9,6 +9,7 @@ mod collision;
 mod game;
 mod entity;
 mod survivor_rng;
+mod draw_utils;
 
 enum GameState {
     Game,

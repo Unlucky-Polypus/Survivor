@@ -39,7 +39,7 @@ impl DaggerAggregate {
 
     pub fn update(&mut self) {
         for dagger in &mut self.daggers {
-            dagger.weapon.position += dagger.vel;
+            dagger.weapon.world_position += dagger.vel;
         }
     }
     
@@ -53,9 +53,9 @@ impl DaggerAggregate {
         false
     }
 
-    pub(crate) fn draw(&self) {
+    pub(crate) fn draw(&self, screen_center_position: Vec2) {
         for dagger in &self.daggers {
-            dagger.weapon.draw(&self.texture, Vec2 { 
+            dagger.weapon.draw(&self.texture, screen_center_position, Vec2 { 
                 x: 0., 
                 y: -(self.texture.size().y * dagger.weapon.size_ratio / 2.0) 
             });

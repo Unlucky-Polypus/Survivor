@@ -32,13 +32,13 @@ impl Ennemy {
         self.character.move_by(movement, direction);
     }
     
-    pub(crate) fn draw(&mut self, texture: &Texture2D) {
+    pub(crate) fn draw(&mut self, screen_origin_position: Vec2, texture: &Texture2D) {
         self.character.draw(texture, texture, &CharTextureParams {
             frame_duration: FRAME_DURATION,
             nb_frames: NB_FRAMES,
             frame_width: FRAME_WIDTH,
             frame_height: FRAME_HEIGHT,
-        });
+        }, screen_origin_position);
     }
 }
 

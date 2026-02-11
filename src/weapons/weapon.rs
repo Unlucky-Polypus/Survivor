@@ -1,9 +1,9 @@
 use macroquad::prelude::*;
 
-use crate::collision::{self, Collidable, Hitbox, HitboxParams, OBB};
+use crate::{collision::{self, Collidable, Hitbox, HitboxParams, OBB}, draw_utils::is_on_screen};
 
 pub struct Weapon {
-    pub position: Vec2,
+    pub world_position: Vec2,
     pub angle: f32,
     pub size_ratio: f32,
     hitbox_params: WeaponHitboxParams,
@@ -17,23 +17,32 @@ impl Weapon {
     pub fn new(position: Vec2, angle: f32, size_ratio: f32, 
         hitbox_params: WeaponHitboxParams) -> Self {
         Self {
-            position,
+            world_position: position,
             angle,
             size_ratio,
             hitbox_params,
         }
     }
     /// Draw the weapon taking into account its rotation and position
-    pub fn draw(&self, texture: &Texture2D, offset: Vec2) {
-        
+    pub fn draw(&self, texture: &Texture2D, screen_origin_position: Vec2, offset: Vec2) {
+        let screen_position = Vec2 {
+            x: self.world_position.x - screen_origin_position.x,
+            y: self.world_position.y - screen_origin_position.y,
+        };
+
+        // Don't draw the weapon if it's not on screen
+        if !is_on_screen(screen_position) {
+            return;
+        }
+
         // The pivot point is at the center of the handle and the position is at the top-left 
         // corner of the texture
         let pivot = Vec2{
-            x: self.position.x,
-            y: self.position.y
+            x: screen_position.x,
+            y: screen_position.y
         };
 
-        let texture_position = self.position + offset;
+        let texture_position = screen_position + offset;
         
         draw_texture_ex(
             texture,
@@ -51,7 +60,7 @@ impl Weapon {
         // Debug: draw the sword hitbox in debug builds
         #[cfg(debug_assertions)]
         {
-            collision::draw_hitbox(&self.hitbox(), RED);
+            collision::draw_hitbox(&self.hitbox(), screen_origin_position, RED);
         }
     }
 
@@ -71,8 +80,8 @@ impl Collidable for Weapon {
         let height = self.hitbox_params.height_ratio * adjusted_size.y;
         // `self.position` is the top-left corner of the drawn texture,
         // so compute hitbox position directly from it.
-        let x = self.position.x + ((1.0 - self.hitbox_params.width_ratio) * adjusted_size.x - self.hitbox_params.params.offset_frame.x);
-        let y = self.position.y + ((1.0 - self.hitbox_params.height_ratio) * adjusted_size.y) - (adjusted_size.y - (adjusted_size.y - height) / 2.0) - self.hitbox_params.params.offset_frame.y;
+        let x = self.world_position.x + ((1.0 - self.hitbox_params.width_ratio) * adjusted_size.x - self.hitbox_params.params.offset_frame.x);
+        let y = self.world_position.y + ((1.0 - self.hitbox_params.height_ratio) * adjusted_size.y) - (adjusted_size.y - (adjusted_size.y - height) / 2.0) - self.hitbox_params.params.offset_frame.y;
         // Width and height of the hitbox (the blade)
         let w = self.hitbox_params.width_ratio * adjusted_size.x;
         let h = height;
@@ -82,10 +91,10 @@ impl Collidable for Weapon {
         // around the pivot (`self.position` is the top-left corner / draw pivot).
         let local_center = Vec2 { x: x + half_size.x, y: y + half_size.y };
         let rot = Mat2::from_angle(self.angle);
-        let center = self.position + rot * (local_center - self.position);
+        let center = self.world_position + rot * (local_center - self.world_position);
 
         collision::Hitbox::OBB(OBB {
-            center,
+            world_center_position: center,
             half: half_size,
             rotation: self.angle,
         })

@@ -1,9 +1,9 @@
 use macroquad::prelude::*;
 
-use crate::collision::{Collidable, Hitbox, HitboxParams, OBB};
+use crate::{collision::{Collidable, Hitbox, HitboxParams, OBB}, draw_utils::is_on_screen};
 
 pub(crate) struct Character {
-    pub(crate) pos: Vec2,
+    pub(crate) world_position: Vec2,
     pub(crate) hp: i16,
     direction: Direction,
     hitbox_params: HitboxParams,
@@ -15,7 +15,7 @@ pub(crate) struct Character {
 impl Character {
     pub(crate) fn new(pos: Vec2, hitbox_params: HitboxParams) -> Self {
         Character {
-            pos,
+            world_position: pos,
             hp: 1,
             direction: Direction::Down,
             hitbox_params,
@@ -26,7 +26,17 @@ impl Character {
     }
     
     pub(crate) fn draw(&mut self, idle_texture: &Texture2D, walking_texture: &Texture2D, 
-        params: &CharTextureParams) {
+        params: &CharTextureParams, screen_origin_position: Vec2) {
+        let screen_position = Vec2 {
+            x: self.world_position.x - screen_origin_position.x,
+            y: self.world_position.y - screen_origin_position.y,
+        };
+
+        // Don't draw the character if it's not on screen
+        if !is_on_screen(screen_position) {
+            return;
+        }
+
         let texture = if self.is_idle { idle_texture } else { walking_texture };
         
         let row = match self.direction {
@@ -51,8 +61,8 @@ impl Character {
         
         draw_texture_ex(
             texture,
-            self.pos.x - params.frame_width / 2.0,
-            self.pos.y - params.frame_height / 2.0,
+            screen_position.x - params.frame_width / 2.0,
+            screen_position.y - params.frame_height / 2.0,
             WHITE,
             DrawTextureParams {
                 source: Some(source),
@@ -66,7 +76,7 @@ impl Character {
         {
             use crate::collision;
 
-            collision::draw_hitbox(&self.hitbox(), RED);
+            collision::draw_hitbox(&self.hitbox(), screen_origin_position, RED);
         }
     }
     
@@ -80,7 +90,7 @@ impl Character {
             _ => {
                 self.is_idle = false;
                 self.anim_timer += get_frame_time();
-                self.pos += movement;
+                self.world_position += movement;
                 self.direction = direction;
             }
         }
@@ -90,9 +100,9 @@ impl Character {
 impl Collidable for Character {
     fn hitbox(&self) -> Hitbox {
         Hitbox::OBB(OBB {
-            center: Vec2 { 
-                x: self.pos.x + self.hitbox_params.offset_frame.x,
-                y: self.pos.y + self.hitbox_params.offset_frame.y,
+            world_center_position: Vec2 { 
+                x: self.world_position.x + self.hitbox_params.offset_frame.x,
+                y: self.world_position.y + self.hitbox_params.offset_frame.y,
             },
             half: Vec2 {
                 x: self.hitbox_params.size.x / 2.0,

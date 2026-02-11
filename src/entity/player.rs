@@ -41,15 +41,15 @@ impl Player {
         self.daggers.update();
     }
     
-    pub(crate) fn draw(&mut self, idle_texture: &Texture2D, walking_texture: &Texture2D, ) {
+    pub(crate) fn draw(&mut self, screen_origin_position: Vec2, idle_texture: &Texture2D, walking_texture: &Texture2D) {
         self.character.draw(idle_texture, walking_texture, &CharTextureParams {
             frame_duration: FRAME_DURATION,
             nb_frames: NB_FRAMES,
             frame_width: FRAME_WIDTH,
             frame_height: FRAME_HEIGHT,
-        });
-        self.sword.draw();
-        self.daggers.draw();
+        }, screen_origin_position);
+        self.sword.draw(screen_origin_position);
+        self.daggers.draw(screen_origin_position);
     }
     
     pub(crate) fn weapons_collides_with(&mut self, hitbox: &Hitbox) -> bool {
@@ -60,11 +60,11 @@ impl Player {
     
     pub(crate) fn move_by(&mut self, movement: Vec2, player_direction: Direction) {
         self.character.move_by(movement, player_direction);
-        self.sword.weapon.position = self.character.pos;
+        self.sword.weapon.world_position = self.character.world_position;
     }
 
     pub(crate) fn throw_dagger(&mut self, vel: Vec2, angle: f32) {
-        self.daggers.new_dagger(self.character.pos, vel, angle, 0.07);
+        self.daggers.new_dagger(self.character.world_position, vel, angle, 0.07);
     }
 }
 

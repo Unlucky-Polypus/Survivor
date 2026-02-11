@@ -2,17 +2,14 @@ use macroquad::prelude::*;
 use rand_distr::Distribution;
 
 use crate::collision::{Collidable, hitbox_intersects};
-use crate::entity::bullet::Bullet;
 use crate::entity::character::Direction;
 use crate::entity::ennemy::Ennemy;
 use crate::entity::player::Player;
 use crate::survivor_rng::SurvivorRng;
 use crate::weapons::dagger::DaggerAggregate;
 use crate::weapons::sword::Sword;
-use crate::weapons::weapon::{Weapon, WeaponHitboxParams};
 
 const MOVE_DISTANCE: f32 = 1.;
-const BULLET_RADIUS: f32 = 3.;
 const PLAYER_RADIUS: f32 = 10.;
 const MAX_ENNEMIES_NB: u8 = 10;
 const ENNEMY_SPEED: f32 = 0.1;
@@ -20,7 +17,6 @@ const ENNEMY_SPEED: f32 = 0.1;
 
 pub struct Game {
     player: Player,
-    bullets: Vec<Bullet>,
     ennemies: Vec<Ennemy>,
     score: i16,
     rng: SurvivorRng,
@@ -58,8 +54,6 @@ impl Game {
         );
         
         
-        let bullets: Vec<Bullet> = Vec::new();
-        
         let ennemies: Vec<Ennemy> = Vec::new();
         
         let score: i16 = 0;
@@ -73,7 +67,6 @@ impl Game {
         
         Game {
             player,
-            bullets,
             ennemies,
             score,
             rng,
@@ -126,7 +119,6 @@ impl Game {
             }
         }
         
-        self.bullets.retain(|bullet| !bullet.collided);
         self.ennemies.retain(|ennemy| !ennemy.collided);
     }
         
@@ -160,7 +152,7 @@ impl Game {
             (mouse_pos.x, mouse_pos.y) = mouse_position();
             
             let normalize_vect = compute_normalized_vector(
-                self.player.character.pos, mouse_pos);
+                self.player.character.world_position, mouse_pos);
                 
                 self.player.throw_dagger(normalize_vect, normalize_vect.y.atan2(normalize_vect.x));
                 // self.bullets.push(Bullet { pos: self.player.character.pos, vel: normalize_vect, collided: false });
@@ -168,14 +160,30 @@ impl Game {
     }
             
     fn draw(&mut self) {
-        draw_texture(&self.grass_texture, 0., 0., WHITE);
-        for bullet in self.bullets.iter() {
-            draw_circle(bullet.pos.x, bullet.pos.y, BULLET_RADIUS, WHITE);
-        }
+        // Screen origin (upper left corner) in world coordinates
+        let screen_origin_position = Vec2{
+            x: self.player.character.world_position.x - screen_width() / 2.,
+            y: self.player.character.world_position.y - screen_height() / 2.,
+        };
+
+        let screen_rect = Rect::new(
+            screen_origin_position.x, 
+            screen_origin_position.y, 
+            screen_width(), 
+            screen_height()
+        );
+
+        draw_texture_ex(&self.grass_texture, 0., 0., WHITE, DrawTextureParams {
+            source: Some(screen_rect),
+            ..Default::default()
+        });
+
+        // draw_texture(&self.grass_texture, 0., 0., WHITE);
+
         for ennemy in self.ennemies.iter_mut() {
-            ennemy.draw(&self.orc_texture);
+            ennemy.draw(screen_origin_position, &self.orc_texture);
         }
-        self.player.draw(&self.player_idle_texture, &self.player_walking_texture);
+        self.player.draw(screen_origin_position, &self.player_idle_texture, &self.player_walking_texture);
         draw_text(&format!("Score : {}", self.score), 10., 15., 20., WHITE);
         draw_text(&format!("HP : {}", self.player.character.hp), 10., 32., 20., WHITE);
     }
@@ -188,7 +196,7 @@ impl Game {
             };
             self.ennemies.push(Ennemy::new( 
                 new_ennemy_pos, 
-                compute_normalized_vector(new_ennemy_pos, self.player.character.pos),
+                compute_normalized_vector(new_ennemy_pos, self.player.character.world_position),
             ));
         }
     }
@@ -196,7 +204,7 @@ impl Game {
         
 fn adjust_ennemies_velocity(ennemies: &mut Vec<Ennemy>, player: &Player) {
     for ennemy in ennemies.iter_mut() {
-        ennemy.vel = compute_normalized_vector(ennemy.character.pos, player.character.pos);
+        ennemy.vel = compute_normalized_vector(ennemy.character.world_position, player.character.world_position);
     }
 }
         

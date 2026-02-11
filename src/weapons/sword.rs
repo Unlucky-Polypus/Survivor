@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::{collision::{self, Collidable, Hitbox, HitboxParams}, weapons::weapon::{Weapon, WeaponHitboxParams}};
+use crate::{collision::{Collidable, Hitbox, HitboxParams}, weapons::weapon::{Weapon, WeaponHitboxParams}};
 
 // The sword hitbox is 60% of the png size from the tip of the sword to the handle
 const HITBOX_WIDTH_RATIO: f32 = 0.7;
@@ -36,8 +36,8 @@ impl Sword {
     }
 
     /// Draw the sword taking into account its rotation and position
-    pub fn draw(&self) {
-        self.weapon.draw(&self.texture, Vec2 { 
+    pub fn draw(&self, screen_center_position: Vec2) {
+        self.weapon.draw(&self.texture, screen_center_position, Vec2 { 
             x: 20.0, 
             y: -(self.texture.size().y * self.weapon.size_ratio / 2.0) 
         });
