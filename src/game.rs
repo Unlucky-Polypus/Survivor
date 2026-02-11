@@ -91,19 +91,6 @@ impl Game {
     }
         
     fn manage_collisions(&mut self) {
-        // Moving bullets + checking bullet - ennemies collisions
-        // for bullet in self.bullets.iter_mut() {
-        //     bullet.pos += bullet.vel * BULLET_SPEED;
-            
-        //     for ennemy in self.ennemies.iter_mut() {
-        //         if (ennemy.character.pos - bullet.pos).length() < PLAYER_RADIUS {
-        //             self.score += 1;
-        //             bullet.collided = true;
-        //             ennemy.collided = true;
-        //         } 
-        //     }
-        // }
-        
         // Moving ennemies + checking ennemies - player collision
         for ennemy in self.ennemies.iter_mut() {
             let direction = get_direction_from_vector(ennemy.vel);
@@ -150,13 +137,14 @@ impl Game {
         if is_key_pressed(KeyCode::Space) {
             let mut mouse_pos = Vec2::new(0., 0.);
             (mouse_pos.x, mouse_pos.y) = mouse_position();
+
+            println!("Mouse position: {:?}", mouse_pos);
             
             let normalize_vect = compute_normalized_vector(
-                self.player.character.world_position, mouse_pos);
+                Vec2{x: screen_width() / 2., y: screen_height() / 2.}, mouse_pos);
                 
-                self.player.throw_dagger(normalize_vect, normalize_vect.y.atan2(normalize_vect.x));
-                // self.bullets.push(Bullet { pos: self.player.character.pos, vel: normalize_vect, collided: false });
-            }
+            self.player.throw_dagger(normalize_vect, normalize_vect.y.atan2(normalize_vect.x));
+        }
     }
             
     fn draw(&mut self) {
@@ -177,8 +165,6 @@ impl Game {
             source: Some(screen_rect),
             ..Default::default()
         });
-
-        // draw_texture(&self.grass_texture, 0., 0., WHITE);
 
         for ennemy in self.ennemies.iter_mut() {
             ennemy.draw(screen_origin_position, &self.orc_texture);
