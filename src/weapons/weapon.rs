@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 
 use crate::{collision::{self, Collidable, Hitbox, HitboxParams, OBB}, draw_utils::is_on_screen};
 
-pub struct Weapon {
+pub struct OBBWeapon {
     pub world_position: Vec2,
     pub angle: f32,
     pub size_ratio: f32,
@@ -13,7 +13,7 @@ pub struct Weapon {
 //     fn update(&self);
 // }
 
-impl Weapon {
+impl OBBWeapon {
     pub fn new(position: Vec2, angle: f32, size_ratio: f32, 
         hitbox_params: WeaponHitboxParams) -> Self {
         Self {
@@ -74,7 +74,7 @@ impl Weapon {
 }
 
 /// Implement Collidable trait for Weapon to provide its hitbox
-impl Collidable for Weapon {
+impl Collidable for OBBWeapon {
     fn hitbox(&self) -> Hitbox {
         let adjusted_size = self.adjusted_size();
         let height = self.hitbox_params.height_ratio * adjusted_size.y;

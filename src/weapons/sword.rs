@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::{collision::{Collidable, Hitbox, HitboxParams}, weapons::weapon::{Weapon, WeaponHitboxParams}};
+use crate::{collision::{Collidable, Hitbox, HitboxParams}, weapons::weapon::{OBBWeapon, WeaponHitboxParams}};
 
 // The sword hitbox is 60% of the png size from the tip of the sword to the handle
 const HITBOX_WIDTH_RATIO: f32 = 0.7;
@@ -9,7 +9,7 @@ const SWORD_HEIGHT: f32 = 216.;
 
 
 pub struct Sword {
-    pub(crate) weapon: Weapon,
+    pub(crate) weapon: OBBWeapon,
     texture: Texture2D,
 }
 
@@ -24,7 +24,7 @@ impl Sword {
             height_ratio: HITBOX_HEIGTH_RATIO,
         };
         Self {
-            weapon: Weapon::new(position, angle, size_ratio, hitbox_params),
+            weapon: OBBWeapon::new(position, angle, size_ratio, hitbox_params),
             texture,
         }
     }

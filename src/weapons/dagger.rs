@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::{collision::{Collidable, Hitbox, HitboxParams, hitbox_intersects}, weapons::weapon::{Weapon, WeaponHitboxParams}};
+use crate::{collision::{Collidable, Hitbox, HitboxParams, hitbox_intersects}, weapons::weapon::{OBBWeapon, WeaponHitboxParams}};
 
 // The dagger hitbox is 60% of the png size from the tip of the dagger to the handle
 const HITBOX_WIDTH_RATIO: f32 = 0.51;
@@ -13,7 +13,7 @@ pub struct DaggerAggregate {
 }
 
 struct Dagger {
-    weapon: Weapon,
+    weapon: OBBWeapon,
     vel: Vec2,
 }
 
@@ -26,7 +26,7 @@ impl DaggerAggregate {
     }
 
     pub fn new_dagger(&mut self, position: Vec2, vel: Vec2, angle: f32, size_ratio: f32) {
-        let weapon = Weapon::new(position, angle, size_ratio, WeaponHitboxParams {
+        let weapon = OBBWeapon::new(position, angle, size_ratio, WeaponHitboxParams {
             params: HitboxParams {
                 size: Vec2 { x: DAGGER_WIDTH, y: DAGGER_HEIGHT},
                 offset_frame: Vec2 { x: 0., y: 0. },
