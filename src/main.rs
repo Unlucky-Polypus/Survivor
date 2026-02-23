@@ -1,6 +1,6 @@
 use std::{panic};
 
-use macroquad::prelude::*;
+use macroquad::{prelude::*, ui::root_ui};
 
 use crate::game::Game;
 
@@ -133,7 +133,12 @@ fn state_game(game: &mut Game) -> GameState {
 }
 
 fn state_main_menu() -> GameState {
-    draw_text("Press any key to start", 10., 10., 20., WHITE);
+    let window_position = Vec2::new(screen_width() / 2. - 100., screen_height() / 2. - 50.);
+    let window_size = Vec2::new(200., 100.);
+    root_ui().window(1, window_position, window_size, |ui| {
+        ui.label(None, "Welcome to the game!");
+        ui.label(None, "Press any key to start.");
+    });
     if !get_keys_pressed().is_empty() {
         println!("Starting the game...");
         GameState::Game
