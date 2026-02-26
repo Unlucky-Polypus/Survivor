@@ -1,8 +1,11 @@
 use std::{panic};
 
-use macroquad::{prelude::*, ui::root_ui};
+use macroquad::prelude::*;
 
 use crate::game::Game;
+use crate::survivor_ui::window::Action;
+use crate::survivor_ui::main_menu_window::MainMenuWindow;
+use crate::survivor_ui::pause_window::PauseWindow;
 
 mod weapons;
 mod collision;
@@ -10,6 +13,7 @@ mod game;
 mod entity;
 mod survivor_rng;
 mod draw_utils;
+mod survivor_ui;
 
 enum GameState {
     Game,
@@ -75,7 +79,10 @@ async fn main() {
         }
         Err(error) => panic!("{error}"),
     }
-    
+
+    let main_menu_window = MainMenuWindow::new().await;
+    let pause_window = PauseWindow::new().await;
+
     set_default_filter_mode(FilterMode::Nearest);
     
     let mut game = Game::new(&sword_texture, &player_idle_texture, &player_walking_texture, 
@@ -85,16 +92,15 @@ async fn main() {
     println!("Screen width: {}, Screen height: {}", screen_width(), screen_height());
     
     loop {
-        clear_background(BLACK);
         match game_state {
             GameState::MainMenu => {
-                game_state = state_main_menu();
+                game_state = state_main_menu(&main_menu_window);
             }
             GameState::Game => {
                 game_state = state_game(&mut game);
             }
             GameState::Pause => {
-                game_state = state_pause();
+                game_state = state_pause(&pause_window);
             }
             GameState::GameOver => {
                 draw_text("Game Over! Press any key to restart.", 10., 10., 20., WHITE);
@@ -132,25 +138,29 @@ fn state_game(game: &mut Game) -> GameState {
     // }
 }
 
-fn state_main_menu() -> GameState {
-    let window_position = Vec2::new(screen_width() / 2. - 100., screen_height() / 2. - 50.);
-    let window_size = Vec2::new(200., 100.);
-    root_ui().window(1, window_position, window_size, |ui| {
-        ui.label(None, "Welcome to the game!");
-        ui.label(None, "Press any key to start.");
-    });
-    if !get_keys_pressed().is_empty() {
-        println!("Starting the game...");
-        GameState::Game
+fn state_main_menu(main_menu_window: &MainMenuWindow) -> GameState {
+    let action = main_menu_window.draw();
+    if let Some(action) = action {
+        match action {
+            Action::Play => GameState::Game,
+            Action::Options => GameState::MainMenu, // In a real app, this would go to options screen
+            Action::Quit => GameState::GameOver,
+            _ => GameState::MainMenu, // This case should not happen, but we handle it just in case
+        }
     } else {
         GameState::MainMenu
     }
 }
 
-fn state_pause() -> GameState {
-    draw_text("Game paused. Press any key to resume.", 10., 10., 20., WHITE);
-    if !get_keys_pressed().is_empty() {
-        GameState::Game
+fn state_pause(pause_window: &PauseWindow) -> GameState {
+    let action = pause_window.draw();
+    if let Some(action) = action {
+        match action {
+            Action::Resume => GameState::Game,
+            Action::Options => GameState::MainMenu, // In a real app, this would go to options screen
+            Action::QuitToMainMenu => GameState::MainMenu,
+            _ => GameState::Pause, // This case should not happen, but we handle it just in case
+        }
     } else {
         GameState::Pause
     }
